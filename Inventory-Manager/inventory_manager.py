@@ -19,96 +19,97 @@ creds = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
 client = gspread.authorize(creds)
 sheet = client.open("PlanilhaLar").sheet1
 
-def carregar_dados():
-    lista_itens.delete(0, tk.END)
-    dados = sheet.get_all_records()
-    estoque = {}
-    for linha in dados:
-        item = linha["Item"].capitalize()
-        qtd = int(linha["Quantidade"])
-        estoque[item] = estoque.get(item, 0) + qtd
-    for item, qtd in estoque.items():
-        lista_itens.insert(tk.END, f"{item}: {qtd}")
+def load_data():
+    item_list.delete(0, tk.END)
+    data = sheet.get_all_records()
+    inventory = {}
+    for row in data:
+        item = row["Item"].capitalize()
+             
+        qty = int(row["Quantidade"]) #quantity
+        inventory[item] = inventory.get(item, 0) + qty
+    for item, qty in inventory.items():
+        item_list.insert(tk.END, f"{item}: {qty}")
 
-def adicionar_item():
-    qtd = entrada_qtd.get().strip()
-    if not qtd.isdigit():
+def add_item():
+    qty = entry_qty.get().strip()
+    if not qty.isdigit():
         messagebox.showerror("Erro", "Preencha a quantidade corretamente!")
         return
-    if modo_var.get() == "novo":
-        nome = entrada_item.get().strip().capitalize()
-        if not nome:
+    if mode_var.get() == "new":
+        name = entry_item.get().strip().capitalize()
+        if not name:
             messagebox.showerror("Erro", "Digite o nome do item")
             return
-        sheet.append_row([nome, int(qtd)])
+        sheet.append_row([name, int(qty)])
     else:
-        selecionado = lista_itens.curselection()
-        if not selecionado:
+        selected = item_list.curselection()
+        if not selected:
             messagebox.showerror("Erro", "Selecione um item da lista")
             return
-        linha_texto = lista_itens.get(selecionado[0])
-        item_nome = linha_texto.split(":")[0].strip()
-        dados = sheet.get_all_records()
-        for i, linha in enumerate(dados, start=2):
-            if linha["Item"].capitalize() == item_nome:
-                nova_qtd = int(linha["Quantidade"]) + int(qtd)
-                sheet.update_cell(i, 2, nova_qtd)
+        line_text = item_list.get(selected[0])
+        item_name = line_text.split(":")[0].strip()
+        data = sheet.get_all_records()
+        for i, row in enumerate(data, start=2):
+            if row["Item"].capitalize() == item_name:
+                new_qty = int(row["Quantidade"]) + int(qty)
+                sheet.update_cell(i, 2, new_qty)
                 break
-    entrada_item.delete(0, tk.END)
-    entrada_qtd.delete(0, tk.END)
-    carregar_dados()
+    entry_item.delete(0, tk.END)
+    entry_qty.delete(0, tk.END)
+    load_data()
 
-def remover_quantidade():
-    selecionado = lista_itens.curselection()
-    if not selecionado:
+def remove_quantity():
+    selected = item_list.curselection()
+    if not selected:
         messagebox.showerror("Erro", "Selecione um item para remover quantidade")
         return
-    qtd_remover = entrada_qtd.get().strip()
-    if not qtd_remover.isdigit():
+    qty_remove = entry_qty.get().strip()
+    if not qty_remove.isdigit():
         messagebox.showerror("Erro", "Digite uma quantidade válida")
         return
-    qtd_remover = int(qtd_remover)
-    linha_texto = lista_itens.get(selecionado[0])
-    item_nome = linha_texto.split(":")[0].strip()
-    dados = sheet.get_all_records()
-    for i, linha in enumerate(dados, start=2):
-        if linha["Item"].capitalize() == item_nome:
-            qtd_atual = int(linha["Quantidade"])
-            nova_qtd = max(qtd_atual - qtd_remover, 0)
-            sheet.update_cell(i, 2, nova_qtd)
+    qty_remove = int(qty_remove)
+    line_text = item_list.get(selected[0])
+    item_name = line_text.split(":")[0].strip()
+    data = sheet.get_all_records()
+    for i, row in enumerate(data, start=2):
+        if row["Item"].capitalize() == item_name:
+            current_qty = int(row["Quantidade"])
+            new_qty = max(current_qty - qty_remove, 0)
+            sheet.update_cell(i, 2, new_qty)
             break
-    entrada_qtd.delete(0, tk.END)
-    carregar_dados()
-    messagebox.showinfo("Sucesso", f"{qtd_remover} unidades removidas de {item_nome}")
+    entry_qty.delete(0, tk.END)
+    load_data()
+    messagebox.showinfo("Sucesso", f"{qty_remove} unidades removidas de {item_name}")
 
-janela = tk.Tk()
-janela.title("Controle de Estoque")
-janela.geometry("350x500")
+window = tk.Tk()
+window.title("Controle de Estoque")
+window.geometry("350x500")
 
-tk.Label(janela, text="Estoque Atual", font=("Arial", 14, "bold")).pack(pady=5)
+tk.Label(window, text="Estoque Atual", font=("Arial", 14, "bold")).pack(pady=5)
 
-frame_lista = tk.Frame(janela)
-frame_lista.pack(pady=10)
-lista_itens = tk.Listbox(frame_lista, width=30)
-lista_itens.pack()
+frame_list = tk.Frame(window)
+frame_list.pack(pady=10)
+item_list = tk.Listbox(frame_list, width=30)
+item_list.pack()
 
-modo_var = tk.StringVar(value="existente")
-tk.Radiobutton(janela, text="Adicionar a item existente", variable=modo_var, value="existente").pack()
-tk.Radiobutton(janela, text="Criar item novo", variable=modo_var, value="novo").pack()
+mode_var = tk.StringVar(value="existing")
+tk.Radiobutton(window, text="Adicionar a item existente", variable=mode_var, value="existing").pack()
+tk.Radiobutton(window, text="Criar item novo", variable=mode_var, value="new").pack()
 
-tk.Label(janela, text="Nome do Item (apenas para novo):").pack()
-entrada_item = tk.Entry(janela)
-entrada_item.pack()
+tk.Label(window, text="Nome do Item (apenas para novo):").pack()
+entry_item = tk.Entry(window)
+entry_item.pack()
 
-tk.Label(janela, text="Quantidade:").pack()
-entrada_qtd = tk.Entry(janela)
-entrada_qtd.pack()
+tk.Label(window, text="Quantidade:").pack()
+entry_qty = tk.Entry(window)
+entry_qty.pack()
 
-btn_add = tk.Button(janela, text="Adicionar/Atualizar", command=adicionar_item)
+btn_add = tk.Button(window, text="Adicionar/Atualizar", command=add_item)
 btn_add.pack(pady=5)
 
-btn_remover = tk.Button(janela, text="Remover Quantidade", command=remover_quantidade)
-btn_remover.pack(pady=5)
+btn_remove = tk.Button(window, text="Remover Quantidade", command=remove_quantity)
+btn_remove.pack(pady=5)
 
-carregar_dados()
-janela.mainloop()
+load_data()
+window.mainloop()
